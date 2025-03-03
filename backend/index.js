@@ -33,6 +33,17 @@ if (process.env.USE_MOCK_DATA === 'true') {
     res.json(mockData.destinations);
   });
 
+  // Individual destination endpoint
+  app.get('/api/destinations/:id', (req, res) => {
+    const destination = mockData.destinations.find(d => d.id === req.params.id);
+    
+    if (destination) {
+      return res.json(destination);
+    }
+    
+    res.status(404).json({ error: 'Destination not found' });
+  });
+
   app.get('/api/flights', (req, res) => {
     const { origin, budget } = req.query;
     
@@ -150,8 +161,19 @@ if (process.env.USE_MOCK_DATA === 'true') {
     res.json(results);
   });
 } else {
-  // Use real API routes
+  // Use real API routes with mock data fallback
   app.use('/api', apiRoutes);
+  
+  // Add fallback route for individual destinations after regular routes
+  app.get('/api/destinations/:id', (req, res) => {
+    const destination = mockData.destinations.find(d => d.id === req.params.id);
+    
+    if (destination) {
+      return res.json(destination);
+    }
+    
+    res.status(404).json({ error: 'Destination not found' });
+  });
 }
 
 // Error handling middleware

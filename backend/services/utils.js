@@ -33,6 +33,28 @@ const cachedRequest = async (url, options = {}, cacheKey, ttl) => {
   } catch (error) {
     console.error(`API request failed: ${error.message}`);
     
+    // Check if we should use mock data fallback
+    const useMockData = process.env.USE_MOCK_DATA === 'true' || !process.env.USE_MOCK_DATA;
+    if (useMockData) {
+      console.log(`Using mock data fallback for ${url}`);
+      
+      // Extract the endpoint from the URL to determine which mock data to use
+      const urlPath = new URL(url).pathname;
+      const endpoint = urlPath.split('/').pop();
+      
+      // Check if this is a request that might have mock data available
+      if (endpoint) {
+        const mockData = require('../mockData');
+        if (endpoint.includes('destination') && mockData.destinations) {
+          return { result: mockData.destinations };
+        } else if (endpoint.includes('flight') && mockData.flights) {
+          return { result: mockData.flights };
+        } else if (endpoint.includes('accommodation') && mockData.accommodations) {
+          return { result: mockData.accommodations };
+        }
+      }
+    }
+    
     // If we have a response, throw the error with status text
     if (error.response) {
       const { status, statusText, data } = error.response;

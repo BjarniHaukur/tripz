@@ -137,12 +137,35 @@ const apiClient = axios.create({
   }
 });
 
-// Add response interceptor for error handling
+// Add response interceptor for error handling and fallback to local API
 apiClient.interceptors.response.use(
   response => response,
-  error => {
+  async error => {
     const errorMessage = error.response?.data?.error || error.message || 'Unknown error';
     console.error(`API Error: ${errorMessage}`);
+    
+    // Check if this is a network error (external API failed)
+    if (error.message === 'Network Error' || !error.response || error.response.status >= 500) {
+      console.log('Using local API fallback due to external API failure');
+      
+      // Get the failed request config
+      const failedRequest = error.config;
+      
+      // Set fallback flag to prevent infinite loops
+      if (failedRequest._isRetry) {
+        return Promise.reject(error);
+      }
+      
+      failedRequest._isRetry = true;
+      
+      try {
+        // Retry the request with the same config
+        return await axios(failedRequest);
+      } catch (retryError) {
+        return Promise.reject(retryError);
+      }
+    }
+    
     return Promise.reject(error);
   }
 );
